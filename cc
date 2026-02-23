@@ -94,22 +94,26 @@ cmd_new() {
 
 cmd_ls() {
     local sessions
-    sessions=$(tmux list-sessions -F '#{session_name}|#{session_created}|#{session_windows}|#{session_attached}' 2>/dev/null | grep "^${PREFIX}" || true)
+    sessions=$(tmux list-sessions -F '#{session_name}|#{session_windows}|#{session_attached}' 2>/dev/null | grep "^${PREFIX}" || true)
 
     if [ -z "$sessions" ]; then
         echo "No Claude Code sessions."
         return
     fi
 
-    printf "%-20s %-12s %s\n" "NAME" "WINDOWS" "STATUS"
-    printf "%-20s %-12s %s\n" "----" "-------" "------"
-    while IFS='|' read -r sname created windows attached; do
-        local dname
+    local output=""
+    output+="NAME|DIRECTORY|BRANCH|STATUS"$'\n'
+    while IFS='|' read -r sname windows attached; do
+        local dname dir branch status
         dname=$(display_name "$sname")
-        local status="detached"
+        dir=$(tmux display-message -t "${sname}:.0" -p '#{pane_current_path}' 2>/dev/null || echo "")
+        branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "-")
+        dir="${dir/#$HOME/~}"
+        status="detached"
         [ "$attached" -gt 0 ] && status="attached"
-        printf "%-20s %-12s %s\n" "$dname" "$windows" "$status"
+        output+="${dname}|${dir}|${branch}|${status}"$'\n'
     done <<< "$sessions"
+    echo "$output" | column -t -s '|'
 }
 
 cmd_attach() {
