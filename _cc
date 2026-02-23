@@ -1,0 +1,41 @@
+#compdef cc
+# Zsh completion for cc - Claude Code session manager
+
+_cc_sessions() {
+    local sessions
+    sessions=(${(f)"$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep '^cc-' | sed 's/^cc-//')"})
+    compadd -a sessions
+}
+
+_cc() {
+    local -a subcommands
+    subcommands=(
+        'new:Create a new session'
+        'ls:List sessions'
+        'a:Attach/switch to a session'
+        'kill:Kill a session'
+        'rename:Rename a session'
+        'help:Show help'
+    )
+
+    if (( CURRENT == 2 )); then
+        _describe 'command' subcommands
+        return
+    fi
+
+    case "${words[2]}" in
+        a|kill|rename)
+            _cc_sessions
+            ;;
+        new)
+            if [[ "${words[CURRENT-1]}" == "-c" ]]; then
+                _message 'session name'
+            else
+                compadd -- -c
+                _message 'session name'
+            fi
+            ;;
+    esac
+}
+
+_cc "$@"
